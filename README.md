@@ -54,6 +54,15 @@ The project is designed to be consumed by **two separate front-end applications*
 - Duplicate likes prevented at the database level
 - Likes count kept in sync using transactions
 
+### Pagination & Filtering
+- Pagination supported on posts and comments
+- Configurable `page` and `pageSize` query parameters
+- Filtering posts by:
+  - Author
+  - Published status (author dashboard)
+  - Text search (title and content)
+- Metadata returned with paginated responses (total items, total pages)
+
 ---
 
 
@@ -86,11 +95,17 @@ Authorization: Bearer <JWT_TOKEN>
 - `PATCH  /api/posts/:id/publish` (author/admin)
 - `DELETE /api/posts/:id` (author/admin)
 
+> Supports pagination and filtering via query parameters:
+> `page`, `pageSize`, `search`, `authorId`, `published`
+
 ### Comments
 - `GET    /api/posts/:postId/comments`
 - `POST   /api/posts/:postId/comments`
 - `PUT    /api/comments/:id`
 - `DELETE /api/comments/:id`
+
+> Supports pagination via query parameters:
+> `page`, `pageSize`
 
 ### Likes
 - `POST   /api/posts/:postId/like`
