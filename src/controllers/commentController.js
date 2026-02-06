@@ -1,5 +1,16 @@
 const prisma = require('../config/prisma');
 
+function getPaginationParams(query) {
+  const page = Math.max(parseInt(query.page, 10) || 1, 1);
+  const pageSizeRaw = parseInt(query.pageSize, 10) || 10;
+  const pageSize = Math.min(Math.max(pageSizeRaw, 1), 50);
+
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
+
+  return { page, pageSize, skip, take };
+}
+
 function canManageComment(user, comment) {
   if (!user || !comment) return false;
 
@@ -15,29 +26,45 @@ function canManageComment(user, comment) {
   return false;
 }
 
-// GET /api/posts/:postId/comments (public)
+// GET /api/posts/:postId/comments (public, with pagination)
 async function getCommentsForPost(req, res) {
   try {
     const postId = Number(req.params.postId);
-
     if (Number.isNaN(postId)) {
       return res.status(400).json({ message: 'Invalid post id' });
     }
 
-    const comments = await prisma.comment.findMany({
-      where: { postId },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        author: {
-          select: { id: true, name: true },
+    const { page, pageSize, skip, take } = getPaginationParams(req.query);
+
+    const [totalItems, comments] = await Promise.all([
+      prisma.comment.count({ where: { postId } }),
+      prisma.comment.findMany({
+        where: { postId },
+        orderBy: { createdAt: 'asc' },
+        skip,
+        take,
+        include: {
+          author: {
+            select: { id: true, name: true },
+          },
+          _count: {
+            select: { likes: true },
+          },
         },
-        _count: {
-          select: { likes: true },
-        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    res.json({
+      comments,
+      meta: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
       },
     });
-
-    res.json({ comments });
   } catch (err) {
     console.error('getCommentsForPost error:', err);
     res.status(500).json({ message: 'Internal server error' });

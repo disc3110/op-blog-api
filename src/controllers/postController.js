@@ -7,23 +7,70 @@ function canEditPost(user, post) {
   return post.authorId === user.id;
 }
 
-// GET /api/posts  (public: only published)
+function getPaginationParams(query) {
+  const page = Math.max(parseInt(query.page, 10) || 1, 1);
+  const pageSizeRaw = parseInt(query.pageSize, 10) || 10;
+  const pageSize = Math.min(Math.max(pageSizeRaw, 1), 50); // 1–50
+
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
+
+  return { page, pageSize, skip, take };
+}
+
+// GET /api/posts  (public: only published, with pagination & filters)
 async function getPublishedPosts(req, res) {
   try {
-    const posts = await prisma.post.findMany({
-      where: { published: true },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true },
+    const { page, pageSize, skip, take } = getPaginationParams(req.query);
+    const { authorId, search } = req.query;
+
+    const where = {
+      published: true,
+    };
+
+    if (authorId) {
+      const authorIdNum = Number(authorId);
+      if (!Number.isNaN(authorIdNum)) {
+        where.authorId = authorIdNum;
+      }
+    }
+
+    if (search && search.trim()) {
+      where.OR = [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { content: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    const [totalItems, posts] = await Promise.all([
+      prisma.post.count({ where }),
+      prisma.post.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {
+          author: {
+            select: { id: true, name: true, email: true },
+          },
+          _count: {
+            select: { comments: true, likes: true },
+          },
         },
-        _count: {
-          select: { comments: true, likes: true },
-        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    res.json({
+      posts,
+      meta: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
       },
     });
-
-    res.json({ posts });
   } catch (err) {
     console.error('getPublishedPosts error:', err);
     res.status(500).json({ message: 'Internal server error' });
@@ -66,22 +113,54 @@ async function getPostById(req, res) {
   }
 }
 
-// GET /api/posts/mine  (author/admin only)
+// GET /api/posts/mine  (author/admin only, with pagination & filters)
 async function getMyPosts(req, res) {
   try {
     const userId = req.user.id;
+    const { page, pageSize, skip, take } = getPaginationParams(req.query);
+    const { search, published } = req.query;
 
-    const posts = await prisma.post.findMany({
-      where: { authorId: userId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { comments: true, likes: true },
+    const where = { authorId: userId };
+
+    if (published === 'true') {
+      where.published = true;
+    } else if (published === 'false') {
+      where.published = false;
+    }
+
+    if (search && search.trim()) {
+      where.OR = [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { content: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    const [totalItems, posts] = await Promise.all([
+      prisma.post.count({ where }),
+      prisma.post.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {
+          _count: {
+            select: { comments: true, likes: true },
+          },
         },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    res.json({
+      posts,
+      meta: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
       },
     });
-
-    res.json({ posts });
   } catch (err) {
     console.error('getMyPosts error:', err);
     res.status(500).json({ message: 'Internal server error' });
