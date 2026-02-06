@@ -176,8 +176,6 @@ Each front-end lives in its **own repository** and consumes this API.
 
 ## 📌 Future Improvements
 
-- Pagination for posts & comments
-- Rich-text editor support
 - Image uploads
 - Refresh tokens
 - Rate limiting
