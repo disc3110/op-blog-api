@@ -20,7 +20,6 @@ function getPaginationParams(query) {
 
 // GET /api/posts  (public: only published, with pagination & filters)
 async function getPublishedPosts(req, res) {
-  console.log('DATABASE_URL in prod:', process.env.DATABASE_URL);
   try {
     const { page, pageSize, skip, take } = getPaginationParams(req.query);
     const { authorId, search } = req.query;
