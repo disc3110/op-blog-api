@@ -1,6 +1,7 @@
 const express = require('express');
 const postController = require('../controllers/postController');
 const commentController = require('../controllers/commentController');
+const likeController = require('../controllers/likeController');
 const {
   authenticateToken,
   requireRole,
@@ -26,6 +27,20 @@ router.post(
   '/:postId/comments',
   authenticateToken,
   commentController.createComment
+);
+
+// Like a post (any logged-in user)
+router.post(
+  '/:postId/like',
+  authenticateToken,
+  likeController.likePost
+);
+
+// Unlike a post (any logged-in user)
+router.delete(
+  '/:postId/like',
+  authenticateToken,
+  likeController.unlikePost
 );
 
 // Public single post
