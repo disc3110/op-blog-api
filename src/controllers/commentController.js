@@ -13,16 +13,12 @@ function getPaginationParams(query) {
 
 function canManageComment(user, comment) {
   if (!user || !comment) return false;
-
   // Admin can do anything
   if (user.role === 'ADMIN') return true;
-
   // The comment author
   if (comment.authorId === user.id) return true;
-
   // The post author
   if (comment.post && comment.post.authorId === user.id) return true;
-
   return false;
 }
 
@@ -35,8 +31,9 @@ async function getCommentsForPost(req, res) {
     }
 
     const { page, pageSize, skip, take } = getPaginationParams(req.query);
+    const user = req.user || null;
 
-    const [totalItems, comments] = await Promise.all([
+    const [totalItems, rawComments] = await Promise.all([
       prisma.comment.count({ where: { postId } }),
       prisma.comment.findMany({
         where: { postId },
@@ -50,9 +47,27 @@ async function getCommentsForPost(req, res) {
           _count: {
             select: { likes: true },
           },
+          ...(user && user.id
+            ? {
+                likes: {
+                  where: { userId: user.id },
+                  select: { id: true },
+                },
+              }
+            : {}),
         },
       }),
     ]);
+
+    const comments = rawComments.map((comment) => {
+      const likedByCurrentUser = user && user.id ? (comment.likes?.length || 0) > 0 : false;
+      // remove the filtered likes array before sending response to keep payload clean
+      const { likes, ...rest } = comment;
+      return {
+        ...rest,
+        likedByCurrentUser,
+      };
+    });
 
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 

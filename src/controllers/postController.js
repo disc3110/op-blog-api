@@ -106,7 +106,25 @@ async function getPostById(req, res) {
       }
     }
 
-    res.json({ post });
+    let likedByCurrentUser = false;
+
+    if (user && user.id) {
+      const existingLike = await prisma.like.findUnique({
+        where: {
+          userId_postId: {
+            userId: user.id,
+            postId: id,
+          },
+        },
+      });
+
+      likedByCurrentUser = Boolean(existingLike);
+    }
+
+    res.json({ post: {
+        ...post,
+        likedByCurrentUser,
+      }, });
   } catch (err) {
     console.error('getPostById error:', err);
     res.status(500).json({ message: 'Internal server error' });

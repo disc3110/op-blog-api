@@ -5,6 +5,7 @@ const likeController = require('../controllers/likeController');
 const {
   authenticateToken,
   requireRole,
+  optionalAuth,
 } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -20,7 +21,11 @@ router.get(
 );
 
 // Comments for a post 
-router.get('/:postId/comments', commentController.getCommentsForPost);
+router.get(
+  '/:postId/comments',
+  optionalAuth,
+  commentController.getCommentsForPost
+);
 
 // Create comment on a post (any logged-in user)
 router.post(
@@ -44,7 +49,11 @@ router.delete(
 );
 
 // Public single post
-router.get('/:id', postController.getPostById);
+router.get(
+  '/:id',
+  optionalAuth,
+  postController.getPostById
+);
 
 
 router.post(
