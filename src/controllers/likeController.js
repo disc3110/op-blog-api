@@ -34,7 +34,7 @@ async function likePost(req, res) {
       return res.status(200).json({ message: 'Post already liked' });
     }
 
-    await prisma.$transaction([
+    const [, updatedPost] = await prisma.$transaction([
       prisma.like.create({
         data: {
           userId,
@@ -46,10 +46,16 @@ async function likePost(req, res) {
         data: {
           likesCount: { increment: 1 },
         },
+        select: {
+          likesCount: true,
+        },
       }),
     ]);
 
-    return res.status(201).json({ message: 'Post liked' });
+    return res.status(201).json({
+      message: 'Post liked',
+      likesCount: updatedPost.likesCount,
+    });
   } catch (err) {
     console.error('likePost error:', err);
     return res.status(500).json({ message: 'Internal server error' });
@@ -86,7 +92,7 @@ async function likeComment(req, res) {
       return res.status(200).json({ message: 'Comment already liked' });
     }
 
-    await prisma.$transaction([
+    const [, updatedComment] = await prisma.$transaction([
       prisma.like.create({
         data: {
           userId,
@@ -98,10 +104,16 @@ async function likeComment(req, res) {
         data: {
           likesCount: { increment: 1 },
         },
+        select: {
+          likesCount: true,
+        },
       }),
     ]);
 
-    return res.status(201).json({ message: 'Comment liked' });
+    return res.status(201).json({
+      message: 'Comment liked',
+      likesCount: updatedComment.likesCount,
+    });
   } catch (err) {
     console.error('likeComment error:', err);
     return res.status(500).json({ message: 'Internal server error' });
@@ -132,7 +144,7 @@ async function unlikePost(req, res) {
       return res.status(200).json({ message: 'Post already unliked' });
     }
 
-    await prisma.$transaction([
+    const [, updatedPost] = await prisma.$transaction([
       prisma.like.delete({
         where: { id: existing.id },
       }),
@@ -141,10 +153,16 @@ async function unlikePost(req, res) {
         data: {
           likesCount: { decrement: 1 },
         },
+        select: {
+          likesCount: true,
+        },
       }),
     ]);
 
-    return res.status(200).json({ message: 'Post unliked' });
+    return res.status(200).json({
+      message: 'Post unliked',
+      likesCount: updatedPost.likesCount,
+    });
   } catch (err) {
     console.error('unlikePost error:', err);
     return res.status(500).json({ message: 'Internal server error' });
@@ -174,7 +192,7 @@ async function unlikeComment(req, res) {
       return res.status(200).json({ message: 'Comment already unliked' });
     }
 
-    await prisma.$transaction([
+    const [, updatedComment] = await prisma.$transaction([
       prisma.like.delete({
         where: { id: existing.id },
       }),
@@ -183,10 +201,16 @@ async function unlikeComment(req, res) {
         data: {
           likesCount: { decrement: 1 },
         },
+        select: {
+          likesCount: true,
+        },
       }),
     ]);
 
-    return res.status(200).json({ message: 'Comment unliked' });
+    return res.status(200).json({
+      message: 'Comment unliked',
+      likesCount: updatedComment.likesCount,
+    });
   } catch (err) {
     console.error('unlikeComment error:', err);
     return res.status(500).json({ message: 'Internal server error' });
