@@ -12,6 +12,8 @@ const router = express.Router();
 
 router.get('/', postController.getPublishedPosts);
 
+router.get('/all', authenticateToken, requireRole('ADMIN'), postController.getAllPosts);
+
 // Author's own posts (drafts and published)
 router.get(
   '/mine',

@@ -18,6 +18,63 @@ function getPaginationParams(query) {
   return { page, pageSize, skip, take };
 }
 
+// GET ALL POSTS (admin only, with pagination & filters) - for admin dashboard
+async function getAllPosts(req, res) {
+  try {
+    const { page, pageSize, skip, take } = getPaginationParams(req.query);
+    const { authorId, search } = req.query;
+
+    const where = {};
+
+    if (authorId) {
+      const authorIdNum = Number(authorId);
+      if (!Number.isNaN(authorIdNum)) {
+        where.authorId = authorIdNum;
+      }
+    }
+
+    if (search && search.trim()) {
+      where.OR = [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { content: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    const [totalItems, posts] = await Promise.all([
+      prisma.post.count({ where }),
+      prisma.post.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {    
+          author: {
+            select: { id: true, name: true, email: true },
+          },
+          _count: {
+            select: { comments: true, likes: true },
+          },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    res.json({
+      posts,
+      meta: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+      },
+    });
+  } catch (err) {
+    console.error('getAllPosts error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
 // GET /api/posts  (public: only published, with pagination & filters)
 async function getPublishedPosts(req, res) {
   try {
@@ -308,4 +365,5 @@ module.exports = {
   updatePost,
   togglePublish,
   deletePost,
+  getAllPosts,
 };
