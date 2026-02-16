@@ -22,6 +22,27 @@ The project is designed to be consumed by **two separate front-end applications*
 
 ---
 
+## 🚀 Live Demo
+
+Public App: 
+Author Dashboard: https://op-blog-author-production.up.railway.app
+Public Dashboard: https://op-blog-public-production.up.railway.app
+
+Backend API: https://github.com/disc3110/op-blog-api
+
+
+You can log in using the following **mock author account**:
+
+```json
+{
+  "name": "Author User",
+  "email": "author@example.com",
+  "password": "password123"
+}
+```
+
+This demo account has author permissions and can be used to explore all features of the dashboard.
+
 ## ✨ Features
 
 ### Authentication & Users
